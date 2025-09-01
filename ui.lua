@@ -8112,7 +8112,7 @@ User=an.User or{},
 Size=an.Size and UDim2.new(
 0,math.clamp(an.Size.X.Offset,560,700),
 0,math.clamp(an.Size.Y.Offset,350,520))or UDim2.new(0,580,0,460),
-ToggleKey = an.ToggleKey or Enum.KeyCode.K,
+ToggleKey=an.ToggleKey or Enum.KeyCode.K,
 Transparent=an.Transparent or false,
 HideSearchBar=an.HideSearchBar,
 ScrollBarEnabled=an.ScrollBarEnabled or false,
@@ -8987,35 +8987,39 @@ end)
 
 end,997)
 
--- START ADDED: Toggle key change UI (Topbar button). Allows setting the GUI toggle key at runtime.
+-- START ADDED: Topbar Keybind button (changes GUI toggle key at runtime)
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
 ao:CreateTopbarButton("Keybind","command",function()
-    -- Dialog instructing user to press a key
-    local listenDialog = ao:Dialog{
+    local dialog = ao:Dialog{
         Title = "Change Toggle Key",
         Content = "Press any keyboard key to set the GUI toggle key. Press ESC to cancel.",
-        Buttons = {
-            { Title = "Cancel", Callback = function() end, Variant = "Secondary" }
-        }
+        Buttons = { { Title = "Cancel", Callback = function() end, Variant = "Secondary" } },
     }
 
     local conn
-    conn = aa.InputBegan:Connect(function(input, processed)
+    conn = UserInputService.InputBegan:Connect(function(input, processed)
         if processed then return end
+        if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
         local kc = input.KeyCode
         if not kc then return end
         if kc == Enum.KeyCode.Escape then
-            pcall(function() if listenDialog and listenDialog.Close then listenDialog:Close() end end)
+            if dialog and dialog.Close then pcall(dialog.Close, dialog) end
             if conn then conn:Disconnect() end
             return
         end
-        -- Set the toggle key and notify user
-        ao:SetToggleKey(kc)
-        pcall(function() if listenDialog and listenDialog.Close then listenDialog:Close() end end)
-        ao:Dialog{ Title = "Keybind Set", Content = "Toggle key set to "..tostring(kc.Name), Buttons = { { Title = "OK", Callback = function() end } } }
+        -- Apply new toggle key
+        if ao and ao.SetToggleKey then
+            ao:SetToggleKey(kc)
+            ao:Notify{ Title="Keybind", Content="Toggle key set to "..tostring(kc.Name), Duration=3 }
+        end
+        if dialog and dialog.Close then pcall(dialog.Close, dialog) end
         if conn then conn:Disconnect() end
     end)
 end, 996)
--- END ADDED
+-- END ADDED: Topbar Keybind button
 
 
 
@@ -9938,3 +9942,102 @@ return ay
 end
 
 return aa
+
+
+
+do
+    local Players = game:GetService("Players")
+    local UserInputService = game:GetService("UserInputService")
+    local LocalPlayer = Players.LocalPlayer
+
+    local function apply_mobile_scale_for_gui(gui)
+        if not gui or not gui:IsA("ScreenGui") then return end
+        local name = tostring(gui.Name or ""):lower()
+        if not (name:find("wind") or name:find("windui")) then
+            return
+        end
+
+        local cam = workspace.CurrentCamera
+        local viewport = (cam and cam.ViewportSize) or Vector2.new(1280,720)
+        local minDim = math.min(viewport.X, viewport.Y)
+
+        local scale = math.clamp(minDim / 1100, 0.55, 1)
+
+        local existing = gui:FindFirstChild("WindUI_Mobile_UIScale")
+        if not existing then
+            existing = Instance.new("UIScale")
+            existing.Name = "WindUI_Mobile_UIScale"
+            existing.Parent = gui
+        end
+        existing.Scale = scale
+
+        for _, topbar in ipairs(gui:GetDescendants()) do
+            if topbar:IsA("Frame") and topbar.Name:lower():find("topbar") then
+                pcall(function()
+                    for _, child in ipairs(topbar:GetDescendants()) do
+                        if child:IsA("UIPadding") then
+                            child.PaddingLeft = UDim.new(0,4)
+                            child.PaddingRight = UDim.new(0,4)
+                            child.PaddingTop = UDim.new(0,4)
+                            child.PaddingBottom = UDim.new(0,4)
+                        end
+                        if child:IsA("ImageButton") or child:IsA("TextButton") then
+                            child.Size = UDim2.new(0,36,0,36)
+                            child.ZIndex = 99999
+                            child.AutoButtonColor = true
+                        end
+                    end
+                    for _, layout in ipairs(topbar:GetDescendants()) do
+                        if layout:IsA("UIListLayout") then
+                            layout.Padding = UDim.new(0,4)
+                        end
+                    end
+                end)
+            end
+        end
+
+        local margin = 24
+        for _, frame in ipairs(gui:GetDescendants()) do
+            if frame:IsA("Frame") then
+                pcall(function()
+                    local absX = frame.AbsoluteSize and frame.AbsoluteSize.X or 0
+                    if absX > (viewport.X - margin) then
+                        frame.Size = UDim2.new(0, math.max(80, viewport.X - margin), frame.Size.Y.Scale, frame.Size.Y.Offset)
+                    end
+                end)
+            end
+        end
+    end
+
+    local function apply_to_all_winduis()
+        local playerGui = LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")
+        if not playerGui then return end
+        for _, gui in ipairs(playerGui:GetChildren()) do
+            pcall(function() apply_mobile_scale_for_gui(gui) end)
+        end
+    end
+
+    apply_to_all_winduis()
+
+    UserInputService.WindowSizeChanged:Connect(function()
+        apply_to_all_winduis()
+    end)
+
+    if LocalPlayer then
+        LocalPlayer.ChildAdded:Connect(function(child)
+            if child:IsA("PlayerGui") then
+                child.ChildAdded:Connect(function(gui)
+                    task.wait(0.05)
+                    pcall(function() apply_mobile_scale_for_gui(gui) end)
+                end)
+            end
+        end)
+    end
+
+    spawn(function()
+        while task.wait(3) do
+            pcall(apply_to_all_winduis)
+        end
+    end)
+end
+
