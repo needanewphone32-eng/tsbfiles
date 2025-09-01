@@ -9004,7 +9004,7 @@ ao:CreateTopbarButton("Keybind","command",function()
         if processed then return end
         if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
         local kc = input.KeyCode
-        if not kc then return end
+        if not kc then return endnd
         if kc == Enum.KeyCode.Escape then
             if dialog and dialog.Close then pcall(dialog.Close, dialog) end
             if conn then conn:Disconnect() end
@@ -9971,6 +9971,7 @@ do
         end
         existing.Scale = scale
 
+        
         for _, topbar in ipairs(gui:GetDescendants()) do
             if topbar:IsA("Frame") and topbar.Name:lower():find("topbar") then
                 pcall(function()
