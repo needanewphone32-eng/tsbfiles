@@ -8112,7 +8112,7 @@ User=an.User or{},
 Size=an.Size and UDim2.new(
 0,math.clamp(an.Size.X.Offset,560,700),
 0,math.clamp(an.Size.Y.Offset,350,520))or UDim2.new(0,580,0,460),
-ToggleKey=an.ToggleKey or Enum.KeyCode.K,
+ToggleKey=an.ToggleKey or Enum.KeyCode.G,
 Transparent=an.Transparent or false,
 HideSearchBar=an.HideSearchBar,
 ScrollBarEnabled=an.ScrollBarEnabled or false,
@@ -8986,42 +8986,6 @@ end)
 
 
 end,997)
-
--- START ADDED: Topbar Keybind button (changes GUI toggle key at runtime)
-local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
-ao:CreateTopbarButton("Keybind","command",function()
-    local dialog = ao:Dialog{
-        Title = "Change Toggle Key",
-        Content = "Press any keyboard key to set the GUI toggle key. Press ESC to cancel.",
-        Buttons = { { Title = "Cancel", Callback = function() end, Variant = "Secondary" } },
-    }
-
-    local conn
-    conn = UserInputService.InputBegan:Connect(function(input, processed)
-        if processed then return end
-        if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
-        local kc = input.KeyCode
-        if not kc then return endnd
-        if kc == Enum.KeyCode.Escape then
-            if dialog and dialog.Close then pcall(dialog.Close, dialog) end
-            if conn then conn:Disconnect() end
-            return
-        end
-        -- Apply new toggle key
-        if ao and ao.SetToggleKey then
-            ao:SetToggleKey(kc)
-            ao:Notify{ Title="Keybind", Content="Toggle key set to "..tostring(kc.Name), Duration=3 }
-        end
-        if dialog and dialog.Close then pcall(dialog.Close, dialog) end
-        if conn then conn:Disconnect() end
-    end)
-end, 996)
--- END ADDED: Topbar Keybind button
-
-
 
 function ao.OnClose(m,p)
 ao.OnCloseCallback=p
@@ -9943,477 +9907,204 @@ end
 
 return aa
 
-
--- START ADDED: Mobile-friendly scaling & topbar accessibility fixes
+-- START APPENDED: Safe Mobile & Keybind Helper (non-invasive)
+-- This helper runs after WindUI loads. It does NOT modify WindUI internals.
 do
     local Players = game:GetService("Players")
     local UserInputService = game:GetService("UserInputService")
     local LocalPlayer = Players.LocalPlayer
+    local DEFAULT_KEY = Enum.KeyCode.K -- default toggle key (K)
+    local currentToggleKey = DEFAULT_KEY
 
-    local function apply_mobile_scale_for_gui(gui)
-        if not gui or not gui:IsA("ScreenGui") then return end
-        local name = tostring(gui.Name or ""):lower()
-        if not (name:find("wind") or name:find("windui")) then
-            return
+    local function getPlayerGui()
+        local p = LocalPlayer or Players.LocalPlayer
+        if not p then return nil end
+        return p:FindFirstChild("PlayerGui")
+    end
+
+    local function isWindGui(screenGui)
+        if not screenGui or not screenGui:IsA("ScreenGui") then return false end
+        local name = tostring(screenGui.Name or ""):lower()
+        if name:find("wind") or name:find("windui") then return true end
+        for _, d in ipairs(screenGui:GetDescendants()) do
+            if d:IsA("Frame") and tostring(d.Name or ""):lower():find("topbar") then return true end
         end
+        return false
+    end
 
+    local function findMainFrame(screenGui)
+        if not screenGui then return nil end
+        -- Common frame names used by WindUI: "Main", "MainContainer", "Main.Main", try heuristics
+        for _, d in ipairs(screenGui:GetDescendants()) do
+            if d:IsA("Frame") and (tostring(d.Name or ""):lower():find("main") or tostring(d.Name or ""):lower():find("container")) then
+                return d
+            end
+        end
+        -- fallback: first Frame child
+        for _, c in ipairs(screenGui:GetChildren()) do
+            if c:IsA("Frame") then return c end
+        end
+        return nil
+    end
+
+    local function applyScaleAndTweak(screenGui, scale, btnSize)
+        if not screenGui then return end
+        pcall(function()
+            local existing = screenGui:FindFirstChild("WindUI_Mobile_UIScale")
+            if not existing then
+                existing = Instance.new("UIScale")
+                existing.Name = "WindUI_Mobile_UIScale"
+                existing.Parent = screenGui
+            end
+            existing.Scale = scale or 0.75
+
+            -- Tweak topbar buttons for touch (best-effort)
+            for _, topbar in ipairs(screenGui:GetDescendants()) do
+                if topbar:IsA("Frame") and tostring(topbar.Name or ""):lower():find("topbar") then
+                    for _, v in ipairs(topbar:GetDescendants()) do
+                        if v:IsA("UIPadding") then
+                            v.PaddingLeft = UDim.new(0, 6)
+                            v.PaddingRight = UDim.new(0, 6)
+                            v.PaddingTop = UDim.new(0, 6)
+                            v.PaddingBottom = UDim.new(0, 6)
+                        elseif v:IsA("ImageButton") or v:IsA("TextButton") then
+                            v.Size = UDim2.new(0, btnSize or 42, 0, btnSize or 42)
+                            v.ZIndex = 99999
+                        elseif v:IsA("UIListLayout") then
+                            v.Padding = UDim.new(0, 6)
+                        end
+                    end
+                end
+            end
+
+            -- Clamp wide windows so buttons stay visible
+            local cam = workspace.CurrentCamera
+            local vp = (cam and cam.ViewportSize) or Vector2.new(1280, 720)
+            local margin = 24
+            for _, f in ipairs(screenGui:GetDescendants()) do
+                if f:IsA("Frame") then
+                    pcall(function()
+                        local absX = f.AbsoluteSize and f.AbsoluteSize.X or 0
+                        if absX > (vp.X - margin) then
+                            f.Size = UDim2.new(0, math.max(80, vp.X - margin), f.Size.Y.Scale, f.Size.Y.Offset)
+                        end
+                    end)
+                end
+            end
+        end)
+    end
+
+    -- Add a small "Key" button to any topbar found (non-invasive)
+    local function addKeyButton(screenGui)
+        if not screenGui then return end
+        pcall(function()
+            for _, topbar in ipairs(screenGui:GetDescendants()) do
+                if topbar:IsA("Frame") and tostring(topbar.Name or ""):lower():find("topbar") then
+                    if topbar:FindFirstChild("WindUI_KeyBtn") then return end
+                    local btn = Instance.new("TextButton")
+                    btn.Name = "WindUI_KeyBtn"
+                    btn.Size = UDim2.new(0, 48, 0, 36)
+                    btn.AnchorPoint = Vector2.new(1, 0.5)
+                    btn.Position = UDim2.new(1, -8, 0.5, 0)
+                    btn.BackgroundTransparency = 0.6
+                    btn.BackgroundColor3 = Color3.fromRGB(20,20,20)
+                    btn.BorderSizePixel = 0
+                    btn.Text = "Key"
+                    btn.Font = Enum.Font.SourceSansSemibold
+                    btn.TextSize = 14
+                    btn.ZIndex = 99999
+                    btn.Parent = topbar
+
+                    btn.MouseButton1Click:Connect(function()
+                        -- simple on-screen prompt
+                        local origText = btn.Text
+                        btn.Text = "Press..."
+                        local conn
+                        conn = UserInputService.InputBegan:Connect(function(input, processed)
+                            if processed then return end
+                            if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+                            local kc = input.KeyCode
+                            if not kc then return end
+                            if kc == Enum.KeyCode.Escape then
+                                btn.Text = origText
+                                if conn then conn:Disconnect() end
+                                return
+                            end
+                            currentToggleKey = kc
+                            btn.Text = "Key:"..tostring(kc.Name)
+                            if conn then conn:Disconnect() end
+                        end)
+                        -- auto-stop listening after 5 seconds
+                        task.delay(5, function() if conn and conn.Connected then pcall(function() conn:Disconnect() end); btn.Text = origText end)
+                    end)
+                end
+            end
+        end)
+    end
+
+    -- Toggle handler: when user presses currentToggleKey toggle the visible state of WindUI main frames
+    local function toggleWindUis()
+        local pg = getPlayerGui()
+        if not pg then return end
+        for _, gui in ipairs(pg:GetChildren()) do
+            if isWindGui(gui) then
+                local main = findMainFrame(gui)
+                if main and main:IsA("Frame") then
+                    pcall(function() main.Visible = not main.Visible end)
+                end
+            end
+        end
+    end
+
+    -- Input listener (safe): toggles WindUI-like GUIs when pressing the key
+    local inputConn
+    inputConn = UserInputService.InputBegan:Connect(function(input, processed)
+        if processed then return end
+        if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+        local kc = input.KeyCode
+        if kc == currentToggleKey then
+            pcall(toggleWindUis)
+        end
+    end)
+
+    -- Apply detected scale heuristics by default, but do not destroy original UI
+    local function autoApplyAndWatch(scale, btnSize)
+        local pg = getPlayerGui()
+        if not pg then return end
+        for _, gui in ipairs(pg:GetChildren()) do
+            if isWindGui(gui) then
+                pcall(function()
+                    applyScaleAndTweak(gui, scale, btnSize)
+                    addKeyButton(gui)
+                end)
+            end
+        end
+        pg.ChildAdded:Connect(function(child)
+            task.wait(0.05)
+            if child:IsA("ScreenGui") and isWindGui(child) then
+                pcall(function() applyScaleAndTweak(child, scale, btnSize); addKeyButton(child) end)
+            end
+        end)
+    end
+
+    -- Simple auto-detect
+    local function detectBest()
         local cam = workspace.CurrentCamera
-        local viewport = (cam and cam.ViewportSize) or Vector2.new(1280,720)
-        local minDim = math.min(viewport.X, viewport.Y)
-
-        local scale = math.clamp(minDim / 1100, 0.55, 1)
-
-        local existing = gui:FindFirstChild("WindUI_Mobile_UIScale")
-        if not existing then
-            existing = Instance.new("UIScale")
-            existing.Name = "WindUI_Mobile_UIScale"
-            existing.Parent = gui
-        end
-        existing.Scale = scale
-
-        -- make topbar buttons easier to tap
-        for _, topbar in ipairs(gui:GetDescendants()) do
-            if topbar:IsA("Frame") and topbar.Name:lower():find("topbar") then
-                pcall(function()
-                    for _, child in ipairs(topbar:GetDescendants()) do
-                        if child:IsA("UIPadding") then
-                            child.PaddingLeft = UDim.new(0,4)
-                            child.PaddingRight = UDim.new(0,4)
-                            child.PaddingTop = UDim.new(0,4)
-                            child.PaddingBottom = UDim.new(0,4)
-                        end
-                        if child:IsA("ImageButton") or child:IsA("TextButton") then
-                            child.Size = UDim2.new(0,36,0,36)
-                            child.ZIndex = 99999
-                            child.AutoButtonColor = true
-                        end
-                    end
-                    for _, layout in ipairs(topbar:GetDescendants()) do
-                        if layout:IsA("UIListLayout") then
-                            layout.Padding = UDim.new(0,4)
-                        end
-                    end
-                end)
-            end
-        end
-
-        local margin = 24
-        for _, frame in ipairs(gui:GetDescendants()) do
-            if frame:IsA("Frame") then
-                pcall(function()
-                    local absX = frame.AbsoluteSize and frame.AbsoluteSize.X or 0
-                    if absX > (viewport.X - margin) then
-                        frame.Size = UDim2.new(0, math.max(80, viewport.X - margin), frame.Size.Y.Scale, frame.Size.Y.Offset)
-                    end
-                end)
-            end
+        local vp = (cam and cam.ViewportSize) or Vector2.new(1280, 720)
+        local minDim = math.min(vp.X, vp.Y)
+        if minDim <= 480 then
+            return 0.60, 48 -- small
+        elseif minDim <= 900 then
+            return 0.80, 42 -- mid
+        else
+            return 1.0, 36 -- big/desktop
         end
     end
 
-    local function apply_to_all_winduis()
-        local playerGui = LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")
-        if not playerGui then return end
-        for _, gui in ipairs(playerGui:GetChildren()) do
-            pcall(function() apply_mobile_scale_for_gui(gui) end)
-        end
-    end
-
-    apply_to_all_winduis()
-
-    UserInputService.WindowSizeChanged:Connect(function()
-        apply_to_all_winduis()
-    end)
-
-    if LocalPlayer then
-        LocalPlayer.ChildAdded:Connect(function(child)
-            if child:IsA("PlayerGui") then
-                child.ChildAdded:Connect(function(gui)
-                    task.wait(0.05)
-                    pcall(function() apply_mobile_scale_for_gui(gui) end)
-                end)
-            end
-        end)
-    end
-
-    spawn(function()
-        while task.wait(3) do
-            pcall(apply_to_all_winduis)
-        end
+    -- Run: auto-apply detected settings after a short delay (so WindUI has time to initialize)
+    task.delay(0.15, function()
+        local scale, btnSize = detectBest()
+        pcall(function() autoApplyAndWatch(scale, btnSize) end)
     end)
 end
--- END ADDED: Mobile-friendly scaling
-
-
--- ===== START MERGED: WindUI Mobile Helper (Appended) =====
--- WindUI Mobile Helper (Standalone)
--- Shows a WindUI-styled size selector before the GUI appears and applies a safe UIScale + topbar tweaks.
--- Drop this script in your executor so it runs locally before WindUI loads.
--- Author: ChatGPT (helper script)
-
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-
-local LocalPlayer = Players.LocalPlayer
-if not LocalPlayer then
-    -- In case running in environment without LocalPlayer yet, wait for it.
-    LocalPlayer = Players:GetPropertyChangedSignal("LocalPlayer") and Players.LocalPlayer or nil
-end
-
-local function safeSpawn(fn) pcall(function() fn() end) end
-
--- UI parameters (WindUI-like look)
-local DIALOG_NAME = "WindUI_Mobile_Helper"
-local UISCALE_NAME = "WindUI_Mobile_UIScale"
-local APPLIED_TAG = "WindUI_Mobile_Scale_Applied"
-
-local choices = {
-    { id = 1, name = "Small", scale = 0.60, btnSize = 48, desc = "Small screens (phones)" },
-    { id = 2, name = "Mid",   scale = 0.80, btnSize = 42, desc = "Medium screens (large phones / small tablets)" },
-    { id = 3, name = "Big",   scale = 1.00, btnSize = 36, desc = "Desktop / large screens" },
-}
-
--- Utility: find PlayerGui
-local function getPlayerGui()
-    local p = LocalPlayer or Players.LocalPlayer
-    if p then
-        local pg = p:FindFirstChild("PlayerGui")
-        if pg then return pg end
-    end
-    -- fallback: wait up to a short time
-    for i = 1, 30 do
-        task.wait(0.1)
-        if LocalPlayer then
-            local pg = LocalPlayer:FindFirstChild("PlayerGui")
-            if pg then return pg end
-        end
-    end
-    return nil
-end
-
--- Create a WindUI-styled dialog for choosing size
-local function createSizeDialog()
-    local playerGui = getPlayerGui()
-    if not playerGui then return nil end
-
-    -- Avoid duplicate dialog
-    if playerGui:FindFirstChild(DIALOG_NAME) then
-        return playerGui:FindFirstChild(DIALOG_NAME)
-    end
-
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = DIALOG_NAME
-    screenGui.ResetOnSpawn = false
-    screenGui.IgnoreGuiInset = true
-    screenGui.Parent = playerGui
-
-    -- Main container
-    local main = Instance.new("Frame")
-    main.Name = "Main"
-    main.Size = UDim2.new(0, 420, 0, 220)
-    main.AnchorPoint = Vector2.new(0.5, 0.5)
-    main.Position = UDim2.new(0.5, 0.45, 0, 0)
-    main.BackgroundTransparency = 0
-    main.BackgroundColor3 = Color3.fromHex("#111216")
-    main.Parent = screenGui
-
-    local uic = Instance.new("UICorner", main)
-    uic.CornerRadius = UDim.new(0, 16)
-
-    local grad = Instance.new("UIGradient", main)
-    grad.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromHex("#0f1720")),
-        ColorSequenceKeypoint.new(1, Color3.fromHex("#111216"))
-    }
-    grad.Transparency = NumberSequence.new{ NumberSequenceKeypoint.new(0,0), NumberSequenceKeypoint.new(1,0) }
-
-    -- Title
-    local title = Instance.new("TextLabel", main)
-    title.Name = "Title"
-    title.Size = UDim2.new(1, -32, 0, 36)
-    title.Position = UDim2.new(0, 16, 0, 12)
-    title.BackgroundTransparency = 1
-    title.Text = "Hello"
-    title.Font = Enum.Font.SourceSansSemibold
-    title.TextSize = 20
-    title.TextColor3 = Color3.fromHex("#F4F4F5")
-    title.TextXAlignment = Enum.TextXAlignment.Left
-
-    -- Description
-    local desc = Instance.new("TextLabel", main)
-    desc.Name = "Desc"
-    desc.Size = UDim2.new(1, -32, 0, 48)
-    desc.Position = UDim2.new(0, 16, 0, 46)
-    desc.BackgroundTransparency = 1
-    desc.Text = "Please select your screen size:"
-    desc.Font = Enum.Font.SourceSans
-    desc.TextSize = 16
-    desc.TextColor3 = Color3.fromHex("#BFBFBF")
-    desc.TextXAlignment = Enum.TextXAlignment.Left
-    desc.TextYAlignment = Enum.TextYAlignment.Top
-    desc.RichText = false
-
-    -- Buttons container
-    local btnContainer = Instance.new("Frame", main)
-    btnContainer.Name = "Buttons"
-    btnContainer.Size = UDim2.new(1, -32, 0, 72)
-    btnContainer.Position = UDim2.new(0, 16, 1, -92)
-    btnContainer.BackgroundTransparency = 1
-
-    local layout = Instance.new("UIListLayout", btnContainer)
-    layout.FillDirection = Enum.FillDirection.Horizontal
-    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    layout.VerticalAlignment = Enum.VerticalAlignment.Center
-    layout.Padding = UDim.new(0, 12)
-
-    -- Small helper: create button style
-    local function makeButton(label, subtitle)
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.new(0, 120, 1, 0)
-        b.BackgroundColor3 = Color3.fromHex("#141416")
-        b.BorderSizePixel = 0
-        b.AutoButtonColor = true
-        b.Font = Enum.Font.SourceSansSemibold
-        b.TextSize = 16
-        b.TextColor3 = Color3.fromHex("#FFFFFF")
-        b.Text = label
-        b.RichText = false
-
-        local corner = Instance.new("UICorner", b)
-        corner.CornerRadius = UDim.new(0, 12)
-
-        local sub = Instance.new("TextLabel", b)
-        sub.Size = UDim2.new(1, -12, 0, 18)
-        sub.Position = UDim2.new(0, 6, 1, -24)
-        sub.BackgroundTransparency = 1
-        sub.Text = subtitle or ""
-        sub.Font = Enum.Font.SourceSans
-        sub.TextSize = 12
-        sub.TextColor3 = Color3.fromHex("#9AA1A6")
-        sub.TextXAlignment = Enum.TextXAlignment.Left
-
-        return b
-    end
-
-    -- Create choice buttons
-    local buttons = {}
-    for i, c in ipairs(choices) do
-        local b = makeButton(tostring(c.id) .. " — " .. c.name, c.desc)
-        b.Parent = btnContainer
-        buttons[c.id] = b
-    end
-
-    -- Auto button (detect recommended based on viewport)
-    local autoBtn = makeButton("Auto", "Detect best fit")
-    autoBtn.Parent = btnContainer
-
-    -- Close helper function
-    local function closeDialog()
-        if screenGui then
-            screenGui:Destroy()
-        end
-    end
-
-    -- Return helper references
-    return {
-        Gui = screenGui,
-        Main = main,
-        Buttons = buttons,
-        Auto = autoBtn,
-        Close = closeDialog,
-    }
-end
-
--- Apply scale and tweaks to WindUI-like ScreenGuis (safe, non-invasive)
-local function applyScaleToGui(screenGui, scale, topbarBtnSize)
-    if not screenGui or not screenGui:IsA("ScreenGui") then return end
-    -- Avoid reapplying
-    if screenGui:GetAttribute(APPLIED_TAG) then
-        -- still update scale if changed
-        local existing = screenGui:FindFirstChild(UISCALE_NAME)
-        if existing and existing:IsA("UIScale") then
-            existing.Scale = scale
-        end
-        return
-    end
-
-    -- Add or update UIScale
-    local uiScale = screenGui:FindFirstChild(UISCALE_NAME)
-    if not uiScale then
-        uiScale = Instance.new("UIScale")
-        uiScale.Name = UISCALE_NAME
-        uiScale.Parent = screenGui
-    end
-    uiScale.Scale = scale
-
-    -- Tweak topbar buttons and paddings
-    local function tweakTopbar(topbar)
-        if not topbar or not topbar:IsA("Frame") then return end
-        pcall(function()
-            -- smaller paddings
-            for _, v in ipairs(topbar:GetDescendants()) do
-                if v:IsA("UIPadding") then
-                    v.PaddingLeft = UDim.new(0, 6)
-                    v.PaddingRight = UDim.new(0, 6)
-                    v.PaddingTop = UDim.new(0, 6)
-                    v.PaddingBottom = UDim.new(0, 6)
-                elseif v:IsA("ImageButton") or v:IsA("TextButton") then
-                    v.Size = UDim2.new(0, topbarBtnSize or 42, 0, topbarBtnSize or 42)
-                    v.ZIndex = 99999
-                elseif v:IsA("UIListLayout") then
-                    v.Padding = UDim.new(0, 6)
-                end
-            end
-        end)
-    end
-
-    -- Find topbar-like frames
-    for _, desc in ipairs(screenGui:GetDescendants()) do
-        if desc:IsA("Frame") and desc.Name:lower():find("topbar") then
-            tweakTopbar(desc)
-        end
-    end
-
-    -- Clamp main window widths so topbar buttons remain visible
-    local cam = workspace.CurrentCamera
-    local vp = (cam and cam.ViewportSize) or Vector2.new(1280, 720)
-    local margin = 24
-    for _, f in ipairs(screenGui:GetDescendants()) do
-        if f:IsA("Frame") then
-            pcall(function()
-                local absX = f.AbsoluteSize and f.AbsoluteSize.X or 0
-                if absX > (vp.X - margin) then
-                    f.Size = UDim2.new(0, math.max(80, vp.X - margin), f.Size.Y.Scale, f.Size.Y.Offset)
-                end
-            end)
-        end
-    end
-
-    screenGui:SetAttribute(APPLIED_TAG, true)
-end
-
--- Apply to all existing WindUI-like ScreenGuis
-local function applyToAll(scale, btnSize)
-    local pg = getPlayerGui()
-    if not pg then return end
-    for _, gui in ipairs(pg:GetChildren()) do
-        if gui:IsA("ScreenGui") then
-            -- Heuristics: target ScreenGuis that look like WindUI (name contains "wind" or has a "Topbar" descendant)
-            local name = tostring(gui.Name or ""):lower()
-            local hasTopbar = false
-            for _, d in ipairs(gui:GetDescendants()) do
-                if d:IsA("Frame") and d.Name:lower():find("topbar") then hasTopbar = true break end
-            end
-            if name:find("wind") or name:find("windui") or hasTopbar then
-                pcall(function() applyScaleToGui(gui, scale, btnSize) end)
-            end
-        end
-    end
-end
-
--- Observe new ScreenGuis and apply automatically
-local function watchForGuis(scale, btnSize)
-    local pg = getPlayerGui()
-    if not pg then return end
-    pg.ChildAdded:Connect(function(child)
-        task.wait(0.05)
-        if child:IsA("ScreenGui") then
-            pcall(function()
-                -- same heuristic as above
-                local name = tostring(child.Name or ""):lower()
-                local hasTopbar = false
-                for _, d in ipairs(child:GetDescendants()) do
-                    if d:IsA("Frame") and d.Name:lower():find("topbar") then hasTopbar = true break end
-                end
-                if name:find("wind") or name:find("windui") or hasTopbar then
-                    applyScaleToGui(child, scale, btnSize)
-                end
-            end)
-        end
-    end)
-end
-
--- Auto-detect best fit (simple heuristic)
-local function detectBest()
-    local cam = workspace.CurrentCamera
-    local vp = (cam and cam.ViewportSize) or Vector2.new(1280, 720)
-    local minDim = math.min(vp.X, vp.Y)
-    if minDim <= 480 then
-        return choices[1]
-    elseif minDim <= 900 then
-        return choices[2]
-    else
-        return choices[3]
-    end
-end
-
--- Main: show dialog and wait for choice
-local function main()
-    local dialog = createSizeDialog()
-    if not dialog then return end
-
-    local function setChoice(c)
-        -- Apply immediately and watch for future GUIs
-        applyToAll(c.scale, c.btnSize)
-        watchForGuis(c.scale, c.btnSize)
-
-        -- small toast feedback
-        pcall(function()
-            local notice = Instance.new("TextLabel", dialog.Gui)
-            notice.Size = UDim2.new(0, 300, 0, 40)
-            notice.Position = UDim2.new(0.5, -150, 0.85, 0)
-            notice.AnchorPoint = Vector2.new(0, 0)
-            notice.BackgroundTransparency = 0.95
-            notice.Text = "Applied "..c.name.." scale ("..tostring(c.scale)..")"
-            notice.Font = Enum.Font.SourceSansSemibold
-            notice.TextSize = 16
-            notice.TextColor3 = Color3.fromHex("#FFFFFF")
-            notice.TextStrokeTransparency = 0.8
-            notice.BackgroundColor3 = Color3.fromHex("#0f1720")
-            local nc = Instance.new("UICorner", notice)
-            task.delay(2.5, function() pcall(function() notice:Destroy() end) end)
-        end)
-
-        -- close after short delay
-        task.delay(0.15, function()
-            pcall(function() dialog:Close() end)
-        end)
-    end
-
-    -- Button handlers
-    for id, btn in pairs(dialog.Buttons) do
-        if btn and btn:IsA("TextButton") then
-            btn.MouseButton1Click:Connect(function()
-                local c = choices[id]
-                if c then setChoice(c) end
-            end)
-        end
-    end
-
-    -- Auto button
-    dialog.Auto.MouseButton1Click:Connect(function()
-        local best = detectBest()
-        setChoice(best)
-    end)
-end
-
--- Run main safely
-safeSpawn(main)
-
--- Also ensure this helper keeps running to respond to dynamic GUIs even if dialog closed
--- If the user didn't choose, we still apply a default auto after a delay to avoid leaving WindUI unmodified
-task.delay(8, function()
-    local pg = getPlayerGui()
-    if not pg then return end
-    if pg:FindFirstChild(DIALOG_NAME) then
-        -- if user hasn't chosen (dialog still exists), apply auto-detected and close UI
-        local best = detectBest()
-        applyToAll(best.scale, best.btnSize)
-        watchForGuis(best.scale, best.btnSize)
-        pcall(function() pg:FindFirstChild(DIALOG_NAME):Destroy() end)
-    end
-end)
-
--- End of helper script
-
--- ===== END MERGED: WindUI Mobile Helper =====
+-- END APPENDED: Safe Mobile & Keybind Helper
