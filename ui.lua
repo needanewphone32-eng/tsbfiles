@@ -6,6 +6,15 @@ local Players = game:GetService('Players')
 local TweenService = game:GetService('TweenService')
 local UserInputService = game:GetService('UserInputService')
 
+
+-- Safe clipboard helper
+local function safeSetClipboard(text)
+    pcall(function()
+        if type(setclipboard) == 'function' then
+            safeSetClipboard(text)
+        end
+    end)
+end
 -- Load WindUI (remote dist)
 local function loadWindUI()
     local urls = {
@@ -135,7 +144,7 @@ local function __createSelector()
         TweenService:Create(d, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(88, 101, 242) }):Play()
     end)
     d.MouseButton1Click:Connect(function()
-        pcall(function() setclipboard('https://discord.gg/NYJtHJaQ') end)
+        pcall(function() safeSetClipboard('https://discord.gg/NYJtHJaQ') end)
         WindUI:Notify({ Title = 'Discord', Content = 'Invite copied to clipboard!' })
     end)
 end
@@ -179,7 +188,7 @@ local function __postEnhance()
     -- Discord button
     pcall(function()
         win:CreateTopbarButton('Discord', 'discord', function()
-            pcall(function() setclipboard('https://discord.gg/NYJtHJaQ') end)
+            pcall(function() safeSetClipboard('https://discord.gg/NYJtHJaQ') end)
             WindUI:Notify({ Title = 'Discord', Content = 'Invite copied to clipboard!' })
         end, 995)
     end)
@@ -2230,7 +2239,7 @@ __createMain = function(selectedSize)
     
     if ag.KeySystem.URL then
     ae("Get key","key",function()
-    setclipboard(ag.KeySystem.URL)
+    safeSetClipboard(ag.KeySystem.URL)
     end,"Secondary",aw.Frame)
     end
     
