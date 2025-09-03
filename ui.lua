@@ -1,9 +1,38 @@
--- === WindUI Base + Size Selector (Full) ===
--- Auto-injected selector + Discord + Keybind button
--- Discord invite copied by buttons: https://discord.gg/NYJtHJaQ
 
 local Players = game:GetService('Players')
 local TweenService = game:GetService('TweenService')
+
+do
+    local HttpService = game:GetService("HttpService")
+    if not request then
+        request = function(opts)
+            opts = opts or {}
+            local url = opts.Url or opts.url or opts.url or ""
+            local method = string.upper(opts.Method or opts.method or "GET")
+            local body = opts.Body or opts.body or ""
+            local headers = opts.Headers or opts.headers or {}
+            local default = {StatusCode = 0, Body = nil}
+            local ok, res = pcall(function()
+                if method == "GET" and HttpService.GetAsync then
+                    return { StatusCode = 200, Body = HttpService:GetAsync(url, true) }
+                elseif method == "POST" and HttpService.PostAsync then
+                    return { StatusCode = 200, Body = HttpService:PostAsync(url, body, Enum.HttpContentType.ApplicationJson) }
+                else
+                    return default
+                end
+            end)
+            if ok and res then return res else return default end
+        end
+    end
+    http_request = http_request or request
+    syn_request = syn_request or request
+    -- safe clipboard
+    if not setclipboard then
+        setclipboard = function(txt) pcall(function() end) end
+    end
+    toclipboard = toclipboard or setclipboard
+end
+
 local UserInputService = game:GetService('UserInputService')
 
 
@@ -11,7 +40,7 @@ local UserInputService = game:GetService('UserInputService')
 local function safeSetClipboard(text)
     pcall(function()
         if type(setclipboard) == 'function' then
-            safeSetClipboard(text)
+            setclipboard(text)
         end
     end)
 end
