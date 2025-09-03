@@ -1,3 +1,102 @@
+-- Preset selector - shows before main GUI is created
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local localPlayer = Players.LocalPlayer
+local playerGui = localPlayer:WaitForChild("PlayerGui")
+
+-- default preset if none chosen
+if _G.WindUI_PresetScale == nil then _G.WindUI_PresetScale = 1.0 end
+
+-- Create selector GUI
+local selectorGui = Instance.new("ScreenGui")
+selectorGui.Name = "WindUI_PresetSelector"
+selectorGui.ResetOnSpawn = false
+selectorGui.Parent = playerGui
+
+local frame = Instance.new("Frame", selectorGui)
+frame.Name = "SelectorFrame"
+frame.AnchorPoint = Vector2.new(0.5,0.5)
+frame.Position = UDim2.new(0.5, 0.5, 0.35, 0)
+frame.Size = UDim2.new(0, 420, 0, 180)
+frame.BackgroundTransparency = 0
+frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+frame.BorderSizePixel = 0
+frame.Rotation = 0
+frame.ClipsDescendants = true
+
+local uiCorner = Instance.new("UICorner", frame)
+uiCorner.CornerRadius = UDim.new(0,12)
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, -20, 0, 36)
+title.Position = UDim2.new(0, 10, 0, 8)
+title.BackgroundTransparency = 1
+title.Text = "Select your gui size"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.TextColor3 = Color3.fromRGB(235,235,235)
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+local subtitle = Instance.new("TextLabel", frame)
+subtitle.Size = UDim2.new(1, -20, 0, 20)
+subtitle.Position = UDim2.new(0, 10, 0, 44)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Choose a preset and the main GUI will open with that size."
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextSize = 14
+subtitle.TextColor3 = Color3.fromRGB(200,200,200)
+subtitle.TextXAlignment = Enum.TextXAlignment.Left
+
+local btnContainer = Instance.new("Frame", frame)
+btnContainer.Size = UDim2.new(1, -20, 0, 70)
+btnContainer.Position = UDim2.new(0, 10, 0, 72)
+btnContainer.BackgroundTransparency = 1
+local btnLayout = Instance.new("UIListLayout", btnContainer)
+btnLayout.FillDirection = Enum.FillDirection.Horizontal
+btnLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+btnLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+btnLayout.Padding = UDim.new(0, 12)
+
+local function makePreset(name, scale)
+    local b = Instance.new("TextButton", btnContainer)
+    b.Size = UDim2.new(0, 122, 1, 0)
+    b.BackgroundColor3 = Color3.fromRGB(32,32,32)
+    b.TextColor3 = Color3.fromRGB(235,235,235)
+    b.Font = Enum.Font.GothamSemibold
+    b.TextSize = 18
+    b.Text = name
+    b.AutoButtonColor = false
+    local corner = Instance.new("UICorner", b)
+    corner.CornerRadius = UDim.new(0,10)
+    b.MouseButton1Click:Connect(function()
+        _G.WindUI_PresetScale = scale
+        -- destroy selector and continue executing rest of script
+        selectorGui:Destroy()
+    end)
+    return b
+end
+
+local p1 = makePreset("Preset 1 (Small)", 0.78)
+local p2 = makePreset("Preset 2 (Medium)", 1.0)
+local p3 = makePreset("Preset 3 (Large)", 1.28)
+
+-- Wait for user selection (if already chosen by previous run, destroy quickly)
+if selectorGui and _G.WindUI_PresetScale and _G.WindUI_PresetScale ~= 1.0 then
+    -- quick hide if previously selected; small delay to show confirmation
+    task.defer(function()
+        task.wait(0.08)
+        if selectorGui and selectorGui.Parent then selectorGui:Destroy() end
+    end)
+else
+    -- block execution until a preset is chosen (selectorGui destroyed)
+    while selectorGui and selectorGui.Parent do
+        RunService.Heartbeat:Wait()
+    end
+end
+
+-- At this point, _G.WindUI_PresetScale is set to chosen scale (or 1.0 default)
+-- Continue with original script below
 --[[
      _      ___         ____  ______
     | | /| / (_)__  ___/ / / / /  _/
@@ -9928,3 +10027,209 @@ return ay
 end
 
 return aa
+-- Post-processing adjustments: attempt to apply chosen preset scale and inject Discord, theme and keybind buttons.
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local localPlayer = Players.LocalPlayer
+local playerGui = localPlayer:WaitForChild("PlayerGui")
+
+local chosenScale = tonumber(_G.WindUI_PresetScale) or 1.0
+
+-- utility: find candidate main container frame under PlayerGui
+local function find_main_gui()
+    -- prefer named WindUI or MainContainer frames
+    for _, scr in ipairs(playerGui:GetChildren()) do
+        if scr:IsA("ScreenGui") then
+            -- search for typical names
+            local cand = scr:FindFirstChild("MainContainer") or scr:FindFirstChild("Main") or scr:FindFirstChildWhichIsA and scr:FindFirstChildWhichIsA("Frame")
+            if cand and cand:IsA("Frame") then
+                return cand, scr
+            end
+            -- fallback: pick the largest top-level frame inside this ScreenGui
+            local largest, largestArea = nil, 0
+            for _, obj in ipairs(scr:GetDescendants()) do
+                if obj:IsA("Frame") and obj.Visible and obj.AbsoluteSize and obj.AbsoluteSize.X and obj.AbsoluteSize.Y then
+                    local area = obj.AbsoluteSize.X * obj.AbsoluteSize.Y
+                    if area > largestArea then
+                        largest = obj
+                        largestArea = area
+                    end
+                end
+            end
+            if largest then return largest, scr end
+        end
+    end
+    return nil, nil
+end
+
+-- Wait for the main GUI to appear (give up after some time)
+local mainFrame, mainScreen
+local timeout = 6
+local t0 = tick()
+while tick() - t0 < timeout do
+    mainFrame, mainScreen = find_main_gui()
+    if mainFrame then break end
+    RunService.Heartbeat:Wait()
+end
+
+if mainFrame then
+    -- compute new size based on AbsoluteSize and chosenScale
+    -- use current AbsoluteSize as base and set Offset-only Size to scaled values
+    local baseX = math.max(200, math.floor(mainFrame.AbsoluteSize.X))
+    local baseY = math.max(200, math.floor(mainFrame.AbsoluteSize.Y))
+    local newX = math.max(120, math.floor(baseX * chosenScale))
+    local newY = math.max(120, math.floor(baseY * chosenScale))
+    -- apply new size (offset-only)
+    pcall(function()
+        mainFrame.Size = UDim2.new(0, newX, 0, newY)
+        -- center it on screen if possible
+        mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+        mainFrame.Position = UDim2.new(0.5, 0.5, 0.5, 0)
+    end)
+
+    -- add a Discord button at top-right of mainFrame
+    local function addDiscordButton()
+        if not mainFrame or not mainFrame:IsA("Frame") then return end
+        -- avoid duplicate
+        if mainFrame:FindFirstChild("WindUI_DiscordButton") then return end
+        local btn = Instance.new("TextButton")
+        btn.Name = "WindUI_DiscordButton"
+        btn.Size = UDim2.new(0, 36, 0, 36)
+        btn.AnchorPoint = Vector2.new(1, 0)
+        btn.Position = UDim2.new(1, -8, 0, 8)
+        btn.Text = "D"
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 20
+        btn.TextColor3 = Color3.fromRGB(255,255,255)
+        btn.BackgroundColor3 = Color3.fromRGB(88,101,242)
+        btn.Parent = mainFrame
+        local uic = Instance.new("UICorner", btn); uic.CornerRadius = UDim.new(0,8)
+        btn.MouseButton1Click:Connect(function()
+            local ok, err = pcall(function() setclipboard("https://discord.gg/NYJtHJaQ") end)
+            if not ok then
+                -- fallback: try to copy via syn or just notify
+                pcall(function() if localPlayer and localPlayer:FindFirstChild("PlayerGui") then end end)
+            end
+            -- simple feedback: flash button
+            spawn(function()
+                local orig = btn.BackgroundColor3
+                btn.BackgroundColor3 = Color3.fromRGB(120,140,255)
+                task.wait(0.18)
+                btn.BackgroundColor3 = orig
+            end)
+        end)
+    end
+
+    addDiscordButton()
+
+    -- add small theme & keybind changer top-left
+    local function addTopControls()
+        if mainFrame:FindFirstChild("WindUI_TopControls") then return end
+        local cframe = Instance.new("Frame", mainFrame)
+        cframe.Name = "WindUI_TopControls"
+        cframe.Size = UDim2.new(0, 120, 0, 36)
+        cframe.Position = UDim2.new(0, 8, 0, 8)
+        cframe.BackgroundTransparency = 1
+
+        -- Theme button (dropdown)
+        local themeBtn = Instance.new("TextButton", cframe)
+        themeBtn.Name = "ThemeBtn"
+        themeBtn.Size = UDim2.new(0, 52, 1, 0)
+        themeBtn.Position = UDim2.new(0,0,0,0)
+        themeBtn.Text = "Theme"
+        themeBtn.Font = Enum.Font.Gotham
+        themeBtn.TextSize = 14
+        themeBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+        local ui = Instance.new("UICorner", themeBtn); ui.CornerRadius = UDim.new(0,6)
+
+        local dropdown = Instance.new("Frame", cframe)
+        dropdown.Name = "ThemeDropdown"
+        dropdown.Size = UDim2.new(0, 160, 0, 0)
+        dropdown.Position = UDim2.new(0, 0, 1, 6)
+        dropdown.ClipsDescendants = true
+        dropdown.BackgroundColor3 = Color3.fromRGB(24,24,24)
+        local dcorner = Instance.new("UICorner", dropdown); dcorner.CornerRadius = UDim.new(0,6)
+
+        local themes = {"Dark","Light","Rose","Plant"}
+        local listLayout = Instance.new("UIListLayout", dropdown)
+        listLayout.Padding = UDim.new(0,6)
+        listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        local function rebuildDropdown(open)
+            if open then
+                dropdown.Size = UDim2.new(0,160,0, 30 * #themes + 8)
+                for i, name in ipairs(themes) do
+                    if not dropdown:FindFirstChild("t_"..name) then
+                        local tbtn = Instance.new("TextButton", dropdown)
+                        tbtn.Name = "t_"..name
+                        tbtn.Size = UDim2.new(1, -12, 0, 30)
+                        tbtn.Position = UDim2.new(0,6,0, 6 + (i-1)*30)
+                        tbtn.Text = name
+                        tbtn.Font = Enum.Font.Gotham
+                        tbtn.TextSize = 14
+                        tbtn.BackgroundColor3 = Color3.fromRGB(28,28,28)
+                        local tc = Instance.new("UICorner", tbtn); tc.CornerRadius = UDim.new(0,6)
+                        tbtn.MouseButton1Click:Connect(function()
+                            -- try to call theme setter if available in WindUI
+                            pcall(function()
+                                if _G and _G.WindUI and _G.WindUI.SetTheme then
+                                    _G.WindUI:SetTheme(name)
+                                end
+                            end)
+                        end)
+                    end
+                end
+            else
+                dropdown.Size = UDim2.new(0,160,0,0)
+                for _,c in ipairs(dropdown:GetChildren()) do if c.Name:sub(1,2)=="t_" then c:Destroy() end end
+            end
+        end
+        local open = false
+        themeBtn.MouseButton1Click:Connect(function()
+            open = not open
+            rebuildDropdown(open)
+        end)
+
+        -- Keybind changer
+        local keyBtn = Instance.new("TextButton", cframe)
+        keyBtn.Name = "KeybindBtn"
+        keyBtn.Size = UDim2.new(0, 56, 1, 0)
+        keyBtn.Position = UDim2.new(0, 60, 0, 0)
+        keyBtn.Text = "Key: ["..(tostring(_G.WindUI_ToggleKey) or "P").."]"
+        keyBtn.Font = Enum.Font.Gotham
+        keyBtn.TextSize = 14
+        keyBtn.BackgroundColor3 = Color3.fromRGB(28,28,28)
+        local kc = Instance.new("UICorner", keyBtn); kc.CornerRadius = UDim.new(0,6)
+        local waitingFor = false
+
+        keyBtn.MouseButton1Click:Connect(function()
+            if waitingFor then return end
+            waitingFor = true
+            keyBtn.Text = "Press a key..."
+            local conn
+            conn = UserInputService.InputBegan:Connect(function(inp, gpe)
+                if gpe then return end
+                if inp.UserInputType == Enum.UserInputType.Keyboard then
+                    local key = inp.KeyCode.Name
+                    _G.WindUI_ToggleKey = key
+                    keyBtn.Text = "Key: ["..key.."]"
+                    waitingFor = false
+                    conn:Disconnect()
+                end
+            end)
+        end)
+
+        -- Bind toggle behavior: hide/show mainFrame when key pressed
+        UserInputService.InputBegan:Connect(function(inp, gpe)
+            if gpe then return end
+            if inp.UserInputType == Enum.UserInputType.Keyboard then
+                local name = inp.KeyCode.Name
+                if tostring(name) == tostring(_G.WindUI_ToggleKey or "P") then
+                    if mainFrame then mainFrame.Visible = not mainFrame.Visible end
+                end
+            end
+        end)
+    end
+
+    addTopControls()
+end
