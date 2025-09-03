@@ -757,20 +757,20 @@ function a.e()
             if W < 32 then
                 O(R, U, "control character in string")
             elseif W == 92 then
-                T = T .. R:sub(V, U - 1)
+                T = T.R:sub(V, U - 1)
                 U = U + 1
                 local X = R:sub(U, U)
                 if X == "u" then
                     local Y = R:match("^[dD][89aAbB]%x%x\\u%x%x%x%x", U + 1) or R:match("^%x%x%x%x", U + 1) or O(R, U - 1, "invalid unicode escape in string")
-                    T = T .. Q(Y)
+                    T = T.Q(Y)
                     U = U + #Y
                 else
                     if not J[X] then O(R, U - 1, "invalid escape char '" .. X .. "' in string") end
-                    T = T .. i[X]
+                    T = T.i[X]
                 end
                 V = U + 1
             elseif W == 34 then
-                T = T .. R:sub(V, U - 1)
+                T = T.R:sub(V, U - 1)
                 return T, U + 1
             end
             U = U + 1
@@ -901,7 +901,7 @@ function a.e()
         local aw = function()
             local aw = ""
             for ax = 1, 16 do
-                aw = aw .. al(aq(ap() * 26) + 97)
+                aw = aw.al(aq(ap() * 26) + 97)
             end
             return aw
         end
