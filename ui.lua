@@ -75,6 +75,61 @@ end
 local WindUI = loadWindUI()
 if not WindUI or type(WindUI) ~= 'table' then warn('WindUI could not be loaded. Aborting.'); return end
 
+local function createMainUI(selectedSize)
+    
+    WindUI:Localization({
+        Enabled = true,
+        Prefix = "loc:",
+        DefaultLanguage = "en",
+        Translations = {
+            --[[["ru"] = {
+                ["WINDUI_EXAMPLE"] = "WindUI ÃÅ¸Ã‘â‚¬ÃÂ¸ÃÂ¼ÃÂµÃ‘â‚¬",
+                ["WELCOME"] = "Ãâ€ÃÂ¾ÃÂ±Ã‘â‚¬ÃÂ¾ ÃÂ¿ÃÂ¾ÃÂ¶ÃÂ°ÃÂ»ÃÂ¾ÃÂ²ÃÂ°Ã‘â€šÃ‘Å’ ÃÂ² WindUI!",
+                ["LIB_DESC"] = "Ãâ€˜ÃÂ¸ÃÂ±ÃÂ»ÃÂ¸ÃÂ¾Ã‘â€šÃÂµÃÂºÃÂ° ÃÂ´ÃÂ»ÃÂ¯ Ã‘ÂÃÂ¾ÃÂ·ÃÂ´ÃÂ°ÃÂ½ÃÂ¸Ã‘Â ÃÂºÃ‘â‚¬ÃÂ°Ã‘ÂÃÂ¸ÃÂ²Ã‘â€¹Ã‘â€¦ ÃÂ¸ÃÂ½Ã‘â€šÃÂµÃ‘â‚¬Ã‘â€žÃÂµÃÂ¹Ã‘ÂÃÂ¾ÃÂ²",
+                ["SETTINGS"] = "ÃÂÃÂ°Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ¾ÃÂ¹ÃÂºÃÂ¸",
+                ["APPEARANCE"] = "Ãâ€™ÃÂ½ÃÂµÃ‘Ë†ÃÂ½ÃÂ¸ÃÂ¹ ÃÂ²ÃÂ¸ÃÂ´",
+                ["FEATURES"] = "ÃÂ¤Ã‘Æ’ÃÂ½ÃÂºÃ‘â€ ÃÂ¸ÃÂ¾ÃÂ½ÃÂ°ÃÂ»",
+                ["UTILITIES"] = "ÃËœÃÂ½Ã‘ÂÃ‘â€šÃ‘â‚¬Ã‘Æ’ÃÂ¼ÃÂµÃÂ½Ã‘â€šÃ‘â€¹",
+                ["UI_ELEMENTS"] = "UI ÃÂ­ÃÂ»ÃÂµÃÂ¼ÃÂµÃÂ½Ã‘â€šÃ‘â€¹",
+                ["CONFIGURATION"] = "ÃÅ¡ÃÂ¾ÃÂ½Ã‘â€žÃÂ¸ÃÂ³Ã‘Æ’Ã‘â‚¬ÃÂ°Ã‘â€ ÃÂ¸Ã‘Â",
+                ["SAVE_CONFIG"] = "ÃÂ¡ÃÂ¾Ã‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€šÃ‘Å’ ÃÂºÃÂ¾ÃÂ½Ã‘â€žÃÂ¸ÃÂ³Ã‘Æ’Ã‘â‚¬ÃÂ°Ã‘â€ ÃÂ¸Ã‘Å½",
+                ["LOAD_CONFIG"] = "Ãâ€ÃÂ°ÃÂ³Ã‘â‚¬Ã‘Æ’ÃÂ·ÃÂ¸Ã‘â€šÃ‘Å’ ÃÂºÃÂ¾ÃÂ½Ã‘â€žÃÂ¸ÃÂ³Ã‘Æ’Ã‘â‚¬ÃÂ°Ã‘â€ ÃÂ¸Ã‘Å½",
+                ["THEME_SELECT"] = "Ãâ€™Ã‘â€¹ÃÂ±ÃÂµÃ‘â‚¬ÃÂ¸Ã‘â€šÃÂµ Ã‘â€šÃÂµÃÂ¼Ã‘Æ’",
+                ["TRANSPARENCY"] = "ÃÅ¸Ã‘â‚¬ÃÂ¾ÃÂ·Ã‘â‚¬ÃÂ°Ã‘â€¡ÃÂ½ÃÂ¾Ã‘ÂÃ‘â€šÃ‘Å’ ÃÂ¾ÃÂºÃÂ½ÃÂ°"
+            },--]]
+            ["en"] = {
+                ["WINDUI_EXAMPLE"] = "WindUI Example",
+                ["WELCOME"] = "Welcome to WindUI!",
+                ["LIB_DESC"] = "Beautiful UI library for Roblox",
+                ["SETTINGS"] = "Settings",
+                ["APPEARANCE"] = "Appearance",
+                ["FEATURES"] = "Features",
+                ["UTILITIES"] = "Utilities",
+                ["UI_ELEMENTS"] = "UI Elements",
+                ["CONFIGURATION"] = "Configuration",
+                ["SAVE_CONFIG"] = "Save Configuration",
+                ["LOAD_CONFIG"] = "Load Configuration",
+                ["THEME_SELECT"] = "Select Theme",
+                ["TRANSPARENCY"] = "Window Transparency"
+            }
+        }
+    })
+    
+    WindUI.TransparencyValue = 0.2
+    WindUI:SetTheme("Dark")
+    
+    local function gradient(text, startColor, endColor)
+        local result = ""
+        for i = 1, #text do
+            local t = (i - 1) / (#text - 1)
+            local r = math.floor((startColor.R + (endColor.R - startColor.R) * t) * 255)
+            local g = math.floor((startColor.G + (endColor.G - startColor.G) * t) * 255)
+            local b = math.floor((startColor.B + (endColor.B - startColor.B) * t) * 255)
+            result = result .. string.format('<font color="rgb(%d,%d,%d)">%s</font>', r, g, b, text:sub(i, i))
+        end
+        return result
+    end
+
 local sizes = { { Name = 'Small', Size = UDim2.new(0,500,0,400) }, { Name = 'Medium', Size = UDim2.new(0,600,0,500) }, { Name = 'Large', Size = UDim2.new(0,700,0,600) } }
 
 local function createSizeSelector()
@@ -132,76 +187,12 @@ local function createSizeSelector()
             task.delay(0.18, function() pcall(function() screenGui:Destroy() end); pcall(function() createMainUI(info.Size) end) end)
         end)
     end
-    local discordBtn = Instance.new('TextButton', frame)
-    discordBtn.Size = UDim2.new(0, 36, 0, 36)
-    discordBtn.Position = UDim2.new(1, -46, 1, -46)
-    discordBtn.AnchorPoint = Vector2.new(1, 1)
-    discordBtn.Text = 'D'
-    discordBtn.Font = Enum.Font.GothamBold
-    discordBtn.TextSize = 18
-    discordBtn.TextColor3 = Color3.fromRGB(255,255,255)
-    discordBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    discordBtn.BorderSizePixel = 0
-    local dc = Instance.new('UICorner', discordBtn); dc.CornerRadius = UDim.new(0,8)
-    discordBtn.MouseButton1Click:Connect(function() pcall(function() safeSetClipboard('https://discord.gg/NYJtHJaQ') end); pcall(function() WindUI:Notify({Title = 'Discord', Content = 'Invite copied to clipboard!'}) end) end)
+    ); pcall(function() WindUI:Notify({Title = 'Discord', Content = 'Invite copied to clipboard!'}) end) end)
 end
 
 UserInputService.InputBegan:Connect(function(input, gp) if gp then return end if input.KeyCode == Enum.KeyCode.F9 then local player = Players.LocalPlayer if player and player:FindFirstChild('PlayerGui') and not player.PlayerGui:FindFirstChild('Select you gui size') then createSizeSelector() end end end)
 
-local function createMainUI(selectedSize)
-    
-    WindUI:Localization({
-        Enabled = true,
-        Prefix = "loc:",
-        DefaultLanguage = "en",
-        Translations = {
-            --[[["ru"] = {
-                ["WINDUI_EXAMPLE"] = "WindUI ÃÅ¸Ã‘â‚¬ÃÂ¸ÃÂ¼ÃÂµÃ‘â‚¬",
-                ["WELCOME"] = "Ãâ€ÃÂ¾ÃÂ±Ã‘â‚¬ÃÂ¾ ÃÂ¿ÃÂ¾ÃÂ¶ÃÂ°ÃÂ»ÃÂ¾ÃÂ²ÃÂ°Ã‘â€šÃ‘Å’ ÃÂ² WindUI!",
-                ["LIB_DESC"] = "Ãâ€˜ÃÂ¸ÃÂ±ÃÂ»ÃÂ¸ÃÂ¾Ã‘â€šÃÂµÃÂºÃÂ° ÃÂ´ÃÂ»ÃÂ¯ Ã‘ÂÃÂ¾ÃÂ·ÃÂ´ÃÂ°ÃÂ½ÃÂ¸Ã‘Â ÃÂºÃ‘â‚¬ÃÂ°Ã‘ÂÃÂ¸ÃÂ²Ã‘â€¹Ã‘â€¦ ÃÂ¸ÃÂ½Ã‘â€šÃÂµÃ‘â‚¬Ã‘â€žÃÂµÃÂ¹Ã‘ÂÃÂ¾ÃÂ²",
-                ["SETTINGS"] = "ÃÂÃÂ°Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ¾ÃÂ¹ÃÂºÃÂ¸",
-                ["APPEARANCE"] = "Ãâ€™ÃÂ½ÃÂµÃ‘Ë†ÃÂ½ÃÂ¸ÃÂ¹ ÃÂ²ÃÂ¸ÃÂ´",
-                ["FEATURES"] = "ÃÂ¤Ã‘Æ’ÃÂ½ÃÂºÃ‘â€ ÃÂ¸ÃÂ¾ÃÂ½ÃÂ°ÃÂ»",
-                ["UTILITIES"] = "ÃËœÃÂ½Ã‘ÂÃ‘â€šÃ‘â‚¬Ã‘Æ’ÃÂ¼ÃÂµÃÂ½Ã‘â€šÃ‘â€¹",
-                ["UI_ELEMENTS"] = "UI ÃÂ­ÃÂ»ÃÂµÃÂ¼ÃÂµÃÂ½Ã‘â€šÃ‘â€¹",
-                ["CONFIGURATION"] = "ÃÅ¡ÃÂ¾ÃÂ½Ã‘â€žÃÂ¸ÃÂ³Ã‘Æ’Ã‘â‚¬ÃÂ°Ã‘â€ ÃÂ¸Ã‘Â",
-                ["SAVE_CONFIG"] = "ÃÂ¡ÃÂ¾Ã‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€šÃ‘Å’ ÃÂºÃÂ¾ÃÂ½Ã‘â€žÃÂ¸ÃÂ³Ã‘Æ’Ã‘â‚¬ÃÂ°Ã‘â€ ÃÂ¸Ã‘Å½",
-                ["LOAD_CONFIG"] = "Ãâ€ÃÂ°ÃÂ³Ã‘â‚¬Ã‘Æ’ÃÂ·ÃÂ¸Ã‘â€šÃ‘Å’ ÃÂºÃÂ¾ÃÂ½Ã‘â€žÃÂ¸ÃÂ³Ã‘Æ’Ã‘â‚¬ÃÂ°Ã‘â€ ÃÂ¸Ã‘Å½",
-                ["THEME_SELECT"] = "Ãâ€™Ã‘â€¹ÃÂ±ÃÂµÃ‘â‚¬ÃÂ¸Ã‘â€šÃÂµ Ã‘â€šÃÂµÃÂ¼Ã‘Æ’",
-                ["TRANSPARENCY"] = "ÃÅ¸Ã‘â‚¬ÃÂ¾ÃÂ·Ã‘â‚¬ÃÂ°Ã‘â€¡ÃÂ½ÃÂ¾Ã‘ÂÃ‘â€šÃ‘Å’ ÃÂ¾ÃÂºÃÂ½ÃÂ°"
-            },--]]
-            ["en"] = {
-                ["WINDUI_EXAMPLE"] = "WindUI Example",
-                ["WELCOME"] = "Welcome to WindUI!",
-                ["LIB_DESC"] = "Beautiful UI library for Roblox",
-                ["SETTINGS"] = "Settings",
-                ["APPEARANCE"] = "Appearance",
-                ["FEATURES"] = "Features",
-                ["UTILITIES"] = "Utilities",
-                ["UI_ELEMENTS"] = "UI Elements",
-                ["CONFIGURATION"] = "Configuration",
-                ["SAVE_CONFIG"] = "Save Configuration",
-                ["LOAD_CONFIG"] = "Load Configuration",
-                ["THEME_SELECT"] = "Select Theme",
-                ["TRANSPARENCY"] = "Window Transparency"
-            }
-        }
-    })
-    
-    WindUI.TransparencyValue = 0.2
-    WindUI:SetTheme("Dark")
-    
-    local function gradient(text, startColor, endColor)
-        local result = ""
-        for i = 1, #text do
-            local t = (i - 1) / (#text - 1)
-            local r = math.floor((startColor.R + (endColor.R - startColor.R) * t) * 255)
-            local g = math.floor((startColor.G + (endColor.G - startColor.G) * t) * 255)
-            local b = math.floor((startColor.B + (endColor.B - startColor.B) * t) * 255)
-            result = result .. string.format('<font color="rgb(%d,%d,%d)">%s</font>', r, g, b, text:sub(i, i))
-        end
-        return result
-    end
+
     
     WindUI:Popup({
         Title = gradient("WindUI Demo", Color3.fromHex("#6A11CB"), Color3.fromHex("#2575FC")),
