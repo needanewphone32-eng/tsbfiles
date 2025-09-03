@@ -1,4 +1,4 @@
--- WindUI full script (ready for executors)
+-- WindUI full script (ready for exiecutors)
 -- Filename: WindUI_FULL_ready_EXEC_v2.lua
 -- Discord: https://discord.gg/NYJtHJaQ
 
