@@ -1,3 +1,21 @@
+--[[
+     _      ___         ____  ______
+    | | /| / (_)__  ___/ / / / /  _/
+    | |/ |/ / / _ \/ _  / /_/ // /  
+    |__/|__/_/_//_/\_,_/\____/___/
+    
+    v1.6.45  |  2025-08-29  |  Roblox UI Library for scripts
+    
+    This script is NOT intended to be modified.
+    To view the source code, see the `src/` folder on the official GitHub repository.
+    
+    Author: Footagesus (Footages, .ftgs, oftgs)
+    Github: https://github.com/Footagesus/WindUI
+    Discord: https://discord.gg/Q6HkNG4vwP
+    License: MIT
+]]
+
+
 local a a={cache={}, load=function(b)if not a.cache[b]then a.cache[b]={c=a[b]()}end return a.cache[b].c end}do function a.a()
 
 
@@ -8094,7 +8112,7 @@ User=an.User or{},
 Size=an.Size and UDim2.new(
 0,math.clamp(an.Size.X.Offset,560,700),
 0,math.clamp(an.Size.Y.Offset,350,520))or UDim2.new(0,580,0,460),
-ToggleKey = an.ToggleKey or Enum.KeyCode.K,
+ToggleKey=an.ToggleKey or Enum.KeyCode.G,
 Transparent=an.Transparent or false,
 HideSearchBar=an.HideSearchBar,
 ScrollBarEnabled=an.ScrollBarEnabled or false,
@@ -8968,38 +8986,6 @@ end)
 
 
 end,997)
-
--- START ADDED: Toggle key change UI (Topbar button). Allows setting the GUI toggle key at runtime.
-ao:CreateTopbarButton("Keybind","command",function()
-    -- Dialog instructing user to press a key
-    local listenDialog = ao:Dialog{
-        Title = "Change Toggle Key",
-        Content = "Press any keyboard key to set the GUI toggle key. Press ESC to cancel.",
-        Buttons = {
-            { Title = "Cancel", Callback = function() end, Variant = "Secondary" }
-        }
-    }
-
-    local conn
-    conn = aa.InputBegan:Connect(function(input, processed)
-        if processed then return end
-        local kc = input.KeyCode
-        if not kc then return end
-        if kc == Enum.KeyCode.Escape then
-            pcall(function() if listenDialog and listenDialog.Close then listenDialog:Close() end end)
-            if conn then conn:Disconnect() end
-            return
-        end
-        -- Set the toggle key and notify user
-        ao:SetToggleKey(kc)
-        pcall(function() if listenDialog and listenDialog.Close then listenDialog:Close() end end)
-        ao:Dialog{ Title = "Keybind Set", Content = "Toggle key set to "..tostring(kc.Name), Buttons = { { Title = "OK", Callback = function() end } } }
-        if conn then conn:Disconnect() end
-    end)
-end, 996)
--- END ADDED
-
-
 
 function ao.OnClose(m,p)
 ao.OnCloseCallback=p
