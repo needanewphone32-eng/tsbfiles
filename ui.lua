@@ -9910,8 +9910,7 @@ return aa
 
 ----------------------------------------------------------------
 -- WindUI Additions: Size Presets + Discord + Theme/Keybind UI
--- Safe post-setup block that does NOT touch existing functions.
--- It waits for the main GUI to exist, then augments it.
+-- Appended safely (non-destructive). Robust to timing: auto-choose preset after 5s.
 ----------------------------------------------------------------
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -9919,7 +9918,7 @@ local StarterGui = game:GetService("StarterGui")
 local RunService = game:GetService("RunService")
 
 local LP = Players.LocalPlayer
-local PG = LP:WaitForChild("PlayerGui")
+local PG = LP and LP:WaitForChild("PlayerGui") or game:GetService("CoreGui")
 
 _G.WindUI_PresetScale = _G.WindUI_PresetScale or nil
 _G.WindUI_ToggleKey = _G.WindUI_ToggleKey or Enum.KeyCode.RightControl
@@ -9930,7 +9929,7 @@ local function safeNotify(title, text)
         StarterGui:SetCore("SendNotification", {
             Title = tostring(title or "Info");
             Text = tostring(text or "");
-            Duration = 5
+            Duration = 4
         })
     end)
 end
@@ -9955,6 +9954,7 @@ end
 -- Mini size picker (appears BEFORE main UI if it isn't chosen yet)
 local function createSizePicker()
     if _G.WindUI_PresetChosen then return end
+    if not PG then return end
 
     local sg = Instance.new("ScreenGui")
     sg.Name = "WindUI_SizePicker"
@@ -9968,7 +9968,7 @@ local function createSizePicker()
     holder.Position = UDim2.new(0.5, 0, 0.5, 0)
     holder.Size = UDim2.new(0, 360, 0, 160)
     holder.BackgroundColor3 = Color3.fromRGB(16, 16, 16)
-    holder.BackgroundTransparency = 0.05
+    holder.BackgroundTransparency = 0.03
     holder.Parent = sg
 
     local corner = Instance.new("UICorner", holder)
@@ -10009,7 +10009,7 @@ local function createSizePicker()
         b.MouseButton1Click:Connect(function()
             _G.WindUI_PresetScale = scale
             _G.WindUI_PresetChosen = true
-            sg:Destroy()
+            if sg and sg.Parent then sg:Destroy() end
         end)
         return b
     end
@@ -10021,41 +10021,50 @@ end
 
 createSizePicker()
 
--- Find main UI root to augment (largest visible ScreenGui/Frame)
+-- Helper: find main root (ScreenGui or big Frame)
 local function findMainRoot()
-    -- Prefer a ScreenGui created by the script
-    local bestGui, bestCount = nil, -1
-    for _, g in ipairs(PG:GetChildren()) do
-        if g:IsA("ScreenGui") and g.Enabled ~= false then
-            local count = #g:GetDescendants()
-            if count > bestCount then
-                bestGui, bestCount = g, count
+    if PG then
+        local bestGui, bestCount = nil, -1
+        for _, g in ipairs(PG:GetChildren()) do
+            if g:IsA("ScreenGui") and g.Enabled ~= false then
+                local count = #g:GetDescendants()
+                if count > bestCount then
+                    bestGui, bestCount = g, count
+                end
             end
         end
-    end
-    if bestGui then return bestGui end
+        if bestGui then return bestGui end
 
-    -- Fallback: largest visible Frame anywhere
-    local bestFrame, bestArea = nil, -1
-    for _, d in ipairs(PG:GetDescendants()) do
-        if d:IsA("Frame") and d.Visible ~= false then
-            local abs = d.AbsoluteSize
-            local area = abs.X * abs.Y
-            if area > bestArea then
-                bestFrame, bestArea = d, area
+        local bestFrame, bestArea = nil, -1
+        for _, d in ipairs(PG:GetDescendants()) do
+            if d:IsA("Frame") and d.Visible ~= false then
+                local abs = d.AbsoluteSize
+                local area = (abs.X or 0) * (abs.Y or 0)
+                if area > bestArea then
+                    bestFrame, bestArea = d, area
+                end
             end
         end
+        if bestFrame then return bestFrame end
     end
-    return bestFrame
+
+    -- Fallback: search CoreGui
+    for _, g in ipairs(game:GetService("CoreGui"):GetChildren()) do
+        if g:IsA("ScreenGui") then return g end
+    end
+    return nil
 end
 
 local function attachUIScale(root)
     if not root then return end
-    local s = root:FindFirstChild("WindUI_UIScale", true)
+    local parentScreen = root:IsA("ScreenGui") and root or root:FindFirstAncestorWhichIsA("ScreenGui")
+    if not parentScreen then parentScreen = PG end
+    if not parentScreen then return end
+    local s = parentScreen:FindFirstChild("WindUI_UIScale")
     if not s then
         s = Instance.new("UIScale")
         s.Name = "WindUI_UIScale"
-        s.Parent = (root:IsA("ScreenGui") and root) or root:FindFirstAncestorWhichIsA("ScreenGui") or root
+        s.Parent = parentScreen
     end
     s.Scale = tonumber(_G.WindUI_PresetScale or 1.0)
 end
@@ -10063,7 +10072,14 @@ end
 local function addTopBar(root)
     if not root then return end
     local gui = root:IsA("ScreenGui") and root or root:FindFirstAncestorWhichIsA("ScreenGui")
-    if not gui then return end
+    if not gui then
+        -- create helper ScreenGui so bar is visible
+        gui = Instance.new("ScreenGui")
+        gui.Name = "WindUI_HelperGui"
+        gui.ResetOnSpawn = false
+        gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        gui.Parent = PG or game:GetService("CoreGui")
+    end
 
     local bar = gui:FindFirstChild("WindUI_TopBar") or Instance.new("Frame")
     bar.Name = "WindUI_TopBar"
@@ -10077,7 +10093,6 @@ local function addTopBar(root)
     container.Size = UDim2.new(1, -16, 1, 0)
     container.Position = UDim2.new(0, 8, 0, 0)
 
-    -- Right-aligned buttons
     local list = container:FindFirstChild("UIListLayout") or Instance.new("UIListLayout", container)
     list.FillDirection = Enum.FillDirection.Horizontal
     list.HorizontalAlignment = Enum.HorizontalAlignment.Right
@@ -10098,7 +10113,6 @@ local function addTopBar(root)
         return b
     end
 
-    -- Discord
     local discord = pill("Discord")
     discord.Size = UDim2.new(0, 80, 0, 26)
     discord.MouseButton1Click:Connect(function()
@@ -10106,7 +10120,6 @@ local function addTopBar(root)
     end)
     discord.Parent = container
 
-    -- Theme cycler (Dark/Light/Rose/Plant - affects our bar only to avoid nil calls)
     local theme = pill("Theme: Dark")
     local THEMES = {
         Dark = {bg = Color3.fromRGB(24,24,24), fg = Color3.new(1,1,1)},
@@ -10134,14 +10147,14 @@ local function addTopBar(root)
     end)
     theme.Parent = container
 
-    -- Keybind changer
     local keyBtn = pill("Toggle: RightCtrl")
     keyBtn.MouseButton1Click:Connect(function()
         keyBtn.Text = "Press any key..."
         local con; con = UserInputService.InputBegan:Connect(function(input, gp)
             if gp then return end
             _G.WindUI_ToggleKey = input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode or input.KeyCode
-            keyBtn.Text = ("Toggle: %s"):format(tostring(_G.WindUI_ToggleKey).gsub(tostring(_G.WindUI_ToggleKey), "Enum.KeyCode.", ""))
+            local name = tostring(_G.WindUI_ToggleKey):gsub("Enum.KeyCode.", "")
+            keyBtn.Text = ("Toggle: %s"):format(name)
             if con then con:Disconnect() end
         end)
     end)
@@ -10152,36 +10165,45 @@ local function addTopBar(root)
     UserInputService.InputBegan:Connect(function(input, gp)
         if gp then return end
         if input.KeyCode == _G.WindUI_ToggleKey then
-            if targetGui.Enabled ~= nil then
+            -- Toggle visibility for the ScreenGui (if possible)
+            if targetGui:IsA("ScreenGui") then
                 targetGui.Enabled = not targetGui.Enabled
             else
-                targetGui.Enabled = true
-                targetGui.Enabled = not targetGui.Visible
-                targetGui.Enabled = nil
-                targetGui.Visible = not targetGui.Visible
+                for _, child in ipairs(targetGui:GetChildren()) do
+                    if child:IsA("BaseGui") then
+                        child.Enabled = not child.Enabled
+                    end
+                end
             end
         end
     end)
 end
 
--- Watch for main GUI and apply augmentations once
+-- Wait for preset or auto-choose, then apply to any main GUI found.
 task.spawn(function()
-    -- wait for preset choice if not chosen yet
-    while not _G.WindUI_PresetChosen do
-        RunService.Heartbeat:Wait()
+    -- auto-select default preset after 5s if not chosen
+    local waited = 0
+    while not _G.WindUI_PresetChosen and waited < 5 do
+        task.wait(0.5)
+        waited = waited + 0.5
     end
-    -- wait for any ScreenGui from the main script to appear
-    local root
-    for i = 1, 600 do
+    if not _G.WindUI_PresetChosen then
+        _G.WindUI_PresetScale = _G.WindUI_PresetScale or 1.0
+        _G.WindUI_PresetChosen = true
+    end
+
+    local root = nil
+    for i = 1, 120 do
         root = findMainRoot()
         if root then break end
-        RunService.Heartbeat:Wait()
+        task.wait(0.1)
     end
+
     if root then
         attachUIScale(root)
         addTopBar(root)
     else
-        -- still apply our UIScale to PlayerGui if nothing found
+        -- fallback: attach to PlayerGui itself so scale affects GUIs there
         attachUIScale(PG)
         addTopBar(PG)
     end
