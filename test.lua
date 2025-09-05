@@ -4310,7 +4310,7 @@ end
 end)
 return af.__type,af
 end
-]=false,null=nil}local N=function(N,O,P,Q)for R=O,#N do if P[N:sub(R,R)]~=Q then return R end end;return#N+1 end;local O=function(O,P,Q)local R=1;local S=1;for T=1,P-1 do S=S+1;if O:sub(T,T)==
+
 return ac end function a.B()
 local aa={}
 
@@ -8110,8 +8110,8 @@ Background=an.Background,
 BackgroundImageTransparency=an.BackgroundImageTransparency or 0,
 User=an.User or{},
 Size=an.Size and UDim2.new(
-0,math.clamp(an.Size.X.Offset,400,300),
-0,math.clamp(an.Size.Y.Offset,350,490))or UDim2.new(0,300,0,200),
+0,math.clamp(an.Size.X.Offset,560,700),
+0,math.clamp(an.Size.Y.Offset,350,520))or UDim2.new(0,580,0,460),
 ToggleKey=an.ToggleKey or Enum.KeyCode.G,
 Transparent=an.Transparent or false,
 HideSearchBar=an.HideSearchBar,
