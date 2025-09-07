@@ -8111,7 +8111,7 @@ BackgroundImageTransparency=an.BackgroundImageTransparency or 0,
 User=an.User or{},
 Size=an.Size and UDim2.new(
 0,math.clamp(an.Size.X.Offset,580,580),
-0,math.clamp(an.Size.Y.Offset,415,415))or UDim2.new(0,415,0,415),
+0,math.clamp(an.Size.Y.Offset,580,415))or UDim2.new(0,580,0,415),
 ToggleKey=an.ToggleKey or Enum.KeyCode.K,
 Transparent=an.Transparent or false,
 HideSearchBar=an.HideSearchBar,
