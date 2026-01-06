@@ -7,4 +7,3 @@ return {
     "Uwufacexdd222",
     "Xasssyyt",
 }
-
