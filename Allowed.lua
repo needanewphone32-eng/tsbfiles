@@ -1,5 +1,4 @@
 return {
-    "nomercyslayer0",
     "gjfbnrdehcj10",
     "blox_fruitgod1002",
     "BigAhhmf0",
