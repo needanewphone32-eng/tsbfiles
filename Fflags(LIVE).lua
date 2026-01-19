@@ -1,16 +1,18 @@
-Tabs.FFlags:Paragraph({
+FFlags = Tabs.FFlags
+
+FFlags:Paragraph({
     Title = "Enchant your game !",
     Desc = "⚠️Might be bannable⚠️",
-    Image = "solar:hand-stars-linear",
+    Image = "solar:bomb-emoji-bold",
     ImageSize = 20,
-    Color = Color3.fromHex("#15ff9d")
+    Color = Color3.fromHex("#ff7e15")
 })
 
 
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "boomy leaked op fflags",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -259,9 +261,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "67 op ahh fflags",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -656,9 +658,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "wild fps boost + Ping",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -722,9 +724,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "val illegal anti shove + fps",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -1651,9 +1653,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "Egos New v5 illegal fflags",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -1912,9 +1914,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "illegal fflags by chro",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -2186,9 +2188,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "small tweaks for fps",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -2237,9 +2239,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "supa 10x easier",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -2708,9 +2710,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "Lee Comp",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -2796,9 +2798,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "LMLYX some illegals ig",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -3003,9 +3005,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "Iiminallyx illegal",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -3306,9 +3308,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "BASH FLAGS V15 PAID VERSION",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -3969,9 +3971,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "Smooth Desync",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -3985,9 +3987,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "Instant twisted (EXTREMELY OP /PRIVATE)",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -4106,9 +4108,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "Op Old main (BLATANT ASF)",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 <a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -4503,9 +4505,9 @@ Tabs.FFlags:Button({
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "ZenEg Ping fflag V15 - Credits to ZenEg",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -5318,9 +5320,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "Closet FFlags",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -5838,9 +5840,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "Tracking + Pvp",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
@@ -5922,9 +5924,9 @@ a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
     end
 })
 
-Tabs.FFlags:Button({
+FFlags:Button({
     Title = "lowend potato fflags (Most out of ur pc)",
-    Icon = "zap",
+    Icon = "solar:flag-bold",
     Callback = function()
         loadstring([===[
 a=game:GetService("HttpService")b=game:GetService("Players")c=b.LocalPlayer;d=[[
