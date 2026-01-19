@@ -1,4 +1,4 @@
-FFlags = Tabs.FFlags
+--FFlags = Tabs.FFlags
 
 FFlags:Paragraph({
     Title = "Enchant your game !",
